@@ -1,0 +1,10 @@
+{
+  "name": "checkmate-arena",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node run-dev.js",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  }
+}
