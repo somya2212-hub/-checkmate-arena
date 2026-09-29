@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from '../config/firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -9,12 +10,26 @@ export const api = axios.create({
   },
 });
 
-// Attach Admin JWT Token if present
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ca_admin_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+const isAdminApiRequest = (url = '') =>
+  url.includes('/admin') || url.includes('/tournaments/admin');
+
+// Attach Admin JWT for organizer APIs; Firebase ID token for player APIs
+api.interceptors.request.use(async (config) => {
+  const url = config.url || '';
+
+  if (isAdminApiRequest(url)) {
+    const token = localStorage.getItem('ca_admin_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
   }
+
+  if (auth.currentUser) {
+    const idToken = await auth.currentUser.getIdToken();
+    config.headers.Authorization = `Bearer ${idToken}`;
+  }
+
   return config;
 });
 
@@ -37,6 +52,9 @@ api.interceptors.response.use(
 export const getFeaturedTournament = () => api.get('/tournaments/featured');
 export const getTournamentBySlug = (slug) => api.get(`/tournaments/slug/${slug}`);
 export const getPreviousTournaments = () => api.get('/tournaments/previous');
+
+// --- PLAYER AUTH API ---
+export const syncAuthenticatedUser = () => api.post('/auth/sync');
 
 // --- REGISTRATION & CHECKOUT API ---
 export const createRegistrationOrder = (data) => api.post('/registrations/order', data);

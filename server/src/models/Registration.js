@@ -9,6 +9,17 @@ const registrationSchema = new mongoose.Schema(
       index: true,
       trim: true,
     },
+    firebaseUid: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
     tournamentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tournament',
@@ -128,5 +139,6 @@ const registrationSchema = new mongoose.Schema(
 // Compound index to help fast lookups & duplicate detection
 registrationSchema.index({ tournamentId: 1, chessUsername: 1 });
 registrationSchema.index({ tournamentId: 1, paymentStatus: 1 });
+registrationSchema.index({ tournamentId: 1, firebaseUid: 1 });
 
 export const Registration = mongoose.model('Registration', registrationSchema);

@@ -1,5 +1,6 @@
 import { Tournament } from '../models/Tournament.js';
 import { Registration } from '../models/Registration.js';
+import { User } from '../models/User.js';
 import { generateRegistrationId } from '../utils/generateRegistrationId.js';
 import {
   razorpayInstance,
@@ -11,10 +12,12 @@ import {
 // 1. Create Pending Registration & Razorpay Order
 export const createRegistrationOrder = async (req, res, next) => {
   try {
+    const authUser = req.user || req.firebaseUser;
+    const firebaseUid = authUser?.uid;
+    const verifiedEmail = (authUser?.email || '').toLowerCase();
     const {
       tournamentId,
       fullName,
-      email,
       phone,
       whatsappNumber,
       chessUsername,
@@ -22,10 +25,24 @@ export const createRegistrationOrder = async (req, res, next) => {
       confirmedTerms,
     } = req.body;
 
-    if (!fullName || !email || !phone || !chessUsername) {
+    if (!firebaseUid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Please sign in with Google before registering.',
+      });
+    }
+
+    if (!fullName || !phone || !chessUsername) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields: Full Name, Email, Phone, and Chess.com Username.',
+        message: 'Please provide all required fields: Full Name, Phone, and Chess.com Username.',
+      });
+    }
+
+    if (!verifiedEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Your Google account does not have an email we can use. Please use another Google account.',
       });
     }
 
@@ -37,7 +54,7 @@ export const createRegistrationOrder = async (req, res, next) => {
     }
 
     const cleanChessUsername = chessUsername.trim().toLowerCase();
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail = verifiedEmail;
     const cleanPhone = phone.trim();
 
     // Check tournament status and capacity
@@ -82,6 +99,19 @@ export const createRegistrationOrder = async (req, res, next) => {
       });
     }
 
+    const existingPaidForUser = await Registration.findOne({
+      tournamentId: tournament._id,
+      firebaseUid,
+      paymentStatus: 'PAID',
+    });
+
+    if (existingPaidForUser) {
+      return res.status(400).json({
+        success: false,
+        message: `This Google account is already registered for this tournament with Registration ID: ${existingPaidForUser.registrationId}.`,
+      });
+    }
+
     const amountInPaise = Math.round(tournament.entryFee * 100);
     let orderId = '';
 
@@ -101,8 +131,27 @@ export const createRegistrationOrder = async (req, res, next) => {
       orderId = `order_demo_${Date.now()}_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     }
 
+    // Ensure MongoDB User is created or updated with verified Firebase info
+    const user = await User.findOneAndUpdate(
+      { firebaseUid },
+      {
+        $set: {
+          name: authUser?.name || fullName.trim(),
+          email: cleanEmail,
+          profilePhoto: authUser?.picture || '',
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+      }
+    );
+
     // Create or update pending registration
     const registration = await Registration.create({
+      firebaseUid,
+      userId: user?._id,
       tournamentId: tournament._id,
       fullName: fullName.trim(),
       email: cleanEmail,
@@ -141,6 +190,8 @@ export const createRegistrationOrder = async (req, res, next) => {
 // 2. Verify Razorpay Payment and Issue Unique Registration ID
 export const verifyPaymentAndConfirm = async (req, res, next) => {
   try {
+    const authUser = req.user || req.firebaseUser;
+    const currentUid = authUser?.uid;
     const {
       razorpay_order_id,
       razorpay_payment_id,
@@ -163,6 +214,13 @@ export const verifyPaymentAndConfirm = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'No registration session found for this Order ID.',
+      });
+    }
+
+    if (registration.firebaseUid !== currentUid) {
+      return res.status(403).json({
+        success: false,
+        message: 'This payment session belongs to a different signed-in account.',
       });
     }
 

@@ -5,12 +5,13 @@ import {
   lookupRegistration,
   getPublicRegisteredPlayers,
 } from '../controllers/registrationController.js';
+import { authenticateFirebase } from '../middleware/firebaseAuth.js';
 
 const router = express.Router();
 
-// Public registration endpoints
-router.post('/order', createRegistrationOrder);
-router.post('/verify-payment', verifyPaymentAndConfirm);
+// Paid registration requires a verified Firebase ID token
+router.post('/order', authenticateFirebase, createRegistrationOrder);
+router.post('/verify-payment', authenticateFirebase, verifyPaymentAndConfirm);
 router.post('/lookup', lookupRegistration);
 router.get('/players/:tournamentId', getPublicRegisteredPlayers);
 

@@ -8,11 +8,13 @@ import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
 import { seedDatabase } from './seed.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { initFirebaseAdmin } from './config/firebaseAdmin.js';
 
 import tournamentRoutes from './routes/tournamentRoutes.js';
 import registrationRoutes from './routes/registrationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import webhookRoutes from './routes/webhookRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 dotenv.config();
 
@@ -74,6 +76,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Main Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api/admin', adminRoutes);
@@ -84,6 +87,7 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
   try {
+    initFirebaseAdmin();
     await connectDB();
     await seedDatabase();
 

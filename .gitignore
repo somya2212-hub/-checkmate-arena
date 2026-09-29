@@ -10,6 +10,17 @@ client/.env
 client/.env.*
 server/.env
 server/.env.*
+!.env.example
+!client/.env.example
+!server/.env.example
+
+# Firebase & Cloud Service Account Credentials / Keys
+*firebase-adminsdk*.json
+*serviceAccount*.json
+*service-account*.json
+serviceAccountKey.json
+*.pem
+*.key
 
 # Build files
 dist/

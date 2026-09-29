@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Crown, Menu, X, Shield, Search, UserCheck, Trophy } from 'lucide-react';
+import { Crown, Menu, X, Shield, Search, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { usePlayerAuth } from '../context/PlayerAuthContext';
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { isAuthenticated } = useAuth();
+  const { user, logout } = usePlayerAuth();
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -83,6 +85,41 @@ export const Navbar = () => {
               Register Now
             </Link>
 
+            {user ? (
+              <div className="flex items-center gap-2 pl-1">
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'Player'}
+                    className="w-8 h-8 rounded-full border border-amber-500/40 object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center text-xs font-bold">
+                    {(user.displayName || user.email || 'P').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="hidden xl:block max-w-[120px] truncate text-xs font-semibold text-slate-200">
+                  {user.displayName || user.email}
+                </span>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="flex items-center gap-1 px-2.5 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-700/80 hover:border-slate-600 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-700/80 hover:border-slate-600 transition-colors"
+              >
+                Login
+              </Link>
+            )}
+
             {isAuthenticated ? (
               <Link
                 to="/admin/dashboard"
@@ -139,6 +176,43 @@ export const Navbar = () => {
             </Link>
           ))}
           <div className="pt-4 border-t border-slate-800/80 flex flex-col gap-2">
+            {user ? (
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900 border border-slate-800">
+                <div className="flex items-center gap-2 min-w-0">
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || 'Player'}
+                      className="w-8 h-8 rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-xs font-bold">
+                      {(user.displayName || user.email || 'P').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="truncate text-sm text-slate-200">{user.displayName || user.email}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    setIsOpen(false);
+                  }}
+                  className="text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-slate-900 border border-slate-700 text-slate-200"
+              >
+                Login / Continue with Google
+              </Link>
+            )}
             <Link
               to="/verify"
               onClick={() => setIsOpen(false)}

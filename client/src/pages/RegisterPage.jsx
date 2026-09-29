@@ -3,10 +3,13 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Shield, Lock, CreditCard, CheckCircle2, AlertCircle, ArrowRight, User, Mail, Phone, MessageSquare, Info } from 'lucide-react';
 import { getFeaturedTournament, createRegistrationOrder, verifyPaymentAndConfirm } from '../services/api';
 import { MockRazorpayModal } from '../components/MockRazorpayModal';
+import { usePlayerAuth } from '../context/PlayerAuthContext';
+import { ContinueWithGoogleButton } from '../components/ContinueWithGoogleButton';
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user, loading: authLoading, loginWithGoogle } = usePlayerAuth();
 
   const [tournament, setTournament] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +29,7 @@ export const RegisterPage = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [authError, setAuthError] = useState('');
 
   // Payment State
   const [orderPayload, setOrderPayload] = useState(null);
@@ -46,6 +50,15 @@ export const RegisterPage = () => {
     };
     fetchTournament();
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    setFormData((prev) => ({
+      ...prev,
+      fullName: prev.fullName || user.displayName || '',
+      email: user.email || '',
+    }));
+  }, [user]);
 
   const validate = () => {
     const errs = {};
@@ -96,6 +109,10 @@ export const RegisterPage = () => {
     e.preventDefault();
     if (!validate()) return;
     if (!tournament) return;
+    if (!user) {
+      setServerError('Please sign in with Google before completing a paid registration.');
+      return;
+    }
 
     setIsSubmitting(true);
     setServerError('');
@@ -194,11 +211,51 @@ export const RegisterPage = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen py-24 flex items-center justify-center text-slate-400">
         <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mr-3" />
-        <span>Loading registration portal...</span>
+        <span>{authLoading ? 'Checking your sign-in status...' : 'Loading registration portal...'}</span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen py-12 relative chess-pattern-bg">
+        <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="text-center space-y-3">
+            <span className="text-xs font-mono font-bold uppercase tracking-widest text-amber-400 bg-amber-500/10 px-3.5 py-1 rounded-full border border-amber-500/20">
+              Sign in required
+            </span>
+            <h1 className="font-display font-black text-3xl text-white tracking-tight">
+              Continue with Google to register
+            </h1>
+            <p className="text-slate-400 text-sm">
+              Paid tournament registration is available after Google sign-in. After that you can enter your Chess.com username and complete Razorpay payment.
+            </p>
+          </div>
+
+          {authError && (
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs sm:text-sm flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <p>{authError}</p>
+            </div>
+          )}
+
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-4">
+            <ContinueWithGoogleButton
+              onClick={async () => {
+                setAuthError('');
+                const result = await loginWithGoogle();
+                if (!result.success) setAuthError(result.message);
+              }}
+            />
+            <p className="text-[11px] text-slate-500 text-center">
+              We never ask for your Google password. Sign-in is handled by Google and Firebase Authentication.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -218,6 +275,21 @@ export const RegisterPage = () => {
           <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">
             Provide your exact Chess.com details and complete the entry fee. We will generate your unique Registration ID immediately upon payment confirmation.
           </p>
+        </div>
+
+        <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
+          {user.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt={user.displayName || 'Player'}
+              className="w-9 h-9 rounded-full object-cover border border-amber-500/30"
+              referrerPolicy="no-referrer"
+            />
+          ) : null}
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-white truncate">{user.displayName || 'Player'}</p>
+            <p className="text-xs text-slate-400 truncate">{user.email}</p>
+          </div>
         </div>
 
         {/* Tournament Summary Card */}
@@ -280,12 +352,10 @@ export const RegisterPage = () => {
                 type="email"
                 name="email"
                 value={formData.email}
-                onChange={handleInputChange}
-                placeholder="e.g. player@example.com"
-                className={`w-full px-4 py-3 rounded-xl bg-slate-950 border ${
-                  errors.email ? 'border-red-500' : 'border-slate-800 focus:border-amber-500'
-                } text-sm text-white placeholder-slate-600 focus:outline-none transition-colors`}
+                readOnly
+                className="w-full px-4 py-3 rounded-xl bg-slate-950/70 border border-slate-800 text-sm text-slate-300 cursor-not-allowed"
               />
+              <p className="text-[11px] text-slate-500 mt-1">Taken from your Google account and verified by Firebase.</p>
               {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email}</p>}
             </div>
 

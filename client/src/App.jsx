@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PlayerAuthProvider } from './context/PlayerAuthContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { FloatingWhatsApp } from './components/FloatingWhatsApp';
@@ -18,6 +19,7 @@ import { FAQPage } from './pages/FAQPage';
 import { ContactPage } from './pages/ContactPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { LoginPage } from './pages/LoginPage';
 
 // Protected Route Wrapper for Admin Dashboard
 const ProtectedAdminRoute = ({ children }) => {
@@ -47,7 +49,8 @@ export function App() {
   const isAdminPath = location.pathname.startsWith('/admin');
 
   return (
-    <AuthProvider>
+    <PlayerAuthProvider>
+      <AuthProvider>
       <div className="min-h-screen flex flex-col bg-[#090b10] text-slate-100">
         
         {/* Render Public Navbar & Floating WhatsApp unless inside admin dashboard */}
@@ -60,6 +63,7 @@ export function App() {
             <Route path="/tournament" element={<TournamentDetails />} />
             <Route path="/prizes" element={<PrizePoolPage />} />
             <Route path="/rules" element={<RulesPage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/success" element={<RegistrationSuccessPage />} />
             <Route path="/verify" element={<VerifyRegistrationPage />} />
@@ -88,7 +92,8 @@ export function App() {
         {!isAdminPath && <FloatingWhatsApp />}
 
       </div>
-    </AuthProvider>
+      </AuthProvider>
+    </PlayerAuthProvider>
   );
 }
 
