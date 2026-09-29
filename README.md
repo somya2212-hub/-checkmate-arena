@@ -1,6 +1,6 @@
 # ♟️ Checkmate Arena
 
-**Checkmate Arena** is a full-stack web platform for organizing and managing online chess tournaments.
+**Checkmate Arena** is an online chess tournament registration and management platform.
 
 The platform provides Google authentication, tournament discovery, player registration, registration verification, admin management, and a secure backend architecture for handling authenticated users.
 
